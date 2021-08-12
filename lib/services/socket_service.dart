@@ -16,7 +16,8 @@ class SocketService extends GET.GetxController {
   UserController userController = GET.Get.find();
 
   handleSocket() {
-    socket = io("Your server address here",
+    socket = io(
+        "Your server address", // Change here
         OptionBuilder().setTransports(['websocket']).build());
 
     socket!.onConnect((_) {
@@ -48,7 +49,10 @@ class SocketService extends GET.GetxController {
       printInfo(info: 'SOCKETT CALL MADE $data');
       Call call = Call.fromJson(data);
       if (call.sdp != null) {
-        Get.dialog(AnswerCallDialog(call: call));
+        Get.dialog(
+          AnswerCallDialog(call: call),
+          barrierDismissible: false,
+        );
       }
     });
 
@@ -77,6 +81,10 @@ class SocketService extends GET.GetxController {
         Get.find<VideoConferenceController>()
             .hangUp(snackbarMessage: "User closed call");
       }
+
+      if (Get.isDialogOpen!) {
+        Get.back();
+      }
     });
 
     // Listen for busy
@@ -85,6 +93,10 @@ class SocketService extends GET.GetxController {
       if (Get.isRegistered<VideoConferenceController>()) {
         Get.find<VideoConferenceController>()
             .hangUp(snackbarMessage: "User is busy");
+      }
+
+      if (Get.isDialogOpen!) {
+        Get.back();
       }
     });
   }

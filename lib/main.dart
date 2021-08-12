@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_webrtc_socketio_videocall/controllers/socket_controller.dart';
+import 'package:flutter_webrtc_socketio_videocall/services/socket_service.dart';
 import 'package:flutter_webrtc_socketio_videocall/controllers/user_controller.dart';
 import 'package:flutter_webrtc_socketio_videocall/routes/app_pages.dart';
 import 'package:get/get.dart';

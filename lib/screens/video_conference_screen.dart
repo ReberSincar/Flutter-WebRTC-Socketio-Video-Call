@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_webrtc/flutter_webrtc.dart';
-import 'package:flutter_webrtc_socketio_videocall/controllers/socket_controller.dart';
+import 'package:flutter_webrtc_socketio_videocall/services/socket_service.dart';
 import 'package:flutter_webrtc_socketio_videocall/controllers/video_conference_controller.dart';
 import 'package:get/get.dart';
 
@@ -53,19 +53,26 @@ class VideoConferenceScreen extends GetView<VideoConferenceController> {
           child: Container(
             width: 100,
             height: 150,
-            child: controller.connectionState ==
-                    RTCPeerConnectionState.RTCPeerConnectionStateConnected
-                ? RTCVideoView(
-                    controller.localRenderer,
-                    objectFit: RTCVideoViewObjectFit.RTCVideoViewObjectFitCover,
-                    mirror: true,
-                  )
-                : Expanded(
-                    child: Container(
+            child: Stack(
+              children: [
+                RTCVideoView(
+                  controller.localRenderer,
+                  objectFit: RTCVideoViewObjectFit.RTCVideoViewObjectFitCover,
+                  mirror: true,
+                ),
+                Visibility(
+                  visible: controller.connectionState !=
+                      RTCPeerConnectionState.RTCPeerConnectionStateConnected,
+                  child: Container(
+                    width: 100,
+                    height: 150,
                     color: Colors.black,
                     child: Center(
                         child: CircularProgressIndicator(color: Colors.red)),
-                  )),
+                  ),
+                )
+              ],
+            ),
           ),
         ),
       ],

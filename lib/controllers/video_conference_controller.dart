@@ -2,7 +2,7 @@ import 'package:flutter_webrtc/flutter_webrtc.dart' hide navigator;
 // ignore: implementation_imports
 import 'package:flutter_webrtc/src/native/rtc_peerconnection_factory.dart'
     as RTCNav;
-import 'package:flutter_webrtc_socketio_videocall/controllers/socket_controller.dart';
+import 'package:flutter_webrtc_socketio_videocall/services/socket_service.dart';
 import 'package:flutter_webrtc_socketio_videocall/controllers/user_controller.dart';
 import 'package:flutter_webrtc_socketio_videocall/models/call.dart';
 import 'package:flutter_webrtc_socketio_videocall/models/candidate.dart';
