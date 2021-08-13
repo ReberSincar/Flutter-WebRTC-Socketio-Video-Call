@@ -22,25 +22,28 @@ class VideoConferenceController extends GetxController {
   MediaStream? remoteStream;
   StreamStateCallback? onAddRemoteStream;
   Map<String, dynamic> configuration = {};
+  List<MediaDeviceInfo> mediaDevices = [];
+
+  bool isMuted = false;
+  bool isFrontCamera = true;
+
   bool isOffer = Get.arguments["is_offer"];
-  User? user;
   Call? call;
+  User? user;
 
   @override
   void onInit() async {
-    if (isOffer) {
-      user = Get.arguments["user"];
-    } else {
-      call = Get.arguments["call"];
-      user = call!.from;
-    }
+    call = Get.arguments["call"];
+    user = isOffer ? call!.to : call!.from;
+
+    mediaDevices = await Helper.cameras;
 
     configuration = {
       'iceServers': [
         {
           'urls': [
             'stun:stun1.l.google.com:19302',
-            'stun:stun2.l.google.com:19302'
+            'stun:stun2.l.google.com:19302',
           ]
         }
       ]
@@ -54,7 +57,7 @@ class VideoConferenceController extends GetxController {
     await openUserMedia();
 
     if (isOffer) {
-      callUser(user!);
+      callUser(call!);
     } else {
       handleReceiveCall(call!);
     }
@@ -75,8 +78,8 @@ class VideoConferenceController extends GetxController {
   }
 
   Future<void> openUserMedia() async {
-    var stream = await RTCNav.navigator.mediaDevices
-        .getUserMedia({'video': true, 'audio': true});
+    var stream = await RTCNav.navigator.mediaDevices.getUserMedia(
+        {'video': call!.isVideoCall! ? true : false, 'audio': true});
 
     localRenderer.srcObject = stream;
     localStream = stream;
@@ -110,14 +113,14 @@ class VideoConferenceController extends GetxController {
     }
   }
 
-  Future<void> callUser(User to) async {
+  Future<void> callUser(Call call) async {
     peerConnection = await createPeerConnection(configuration);
 
     peerConnection?.onIceCandidate = (RTCIceCandidate candidate) {
       print('Got candidate: ${candidate.toMap()}');
       CandidateModel candidateModel = CandidateModel(
-          to: to,
-          from: userController.user,
+          to: call.to,
+          from: call.from,
           candidate: candidate.candidate!,
           sdpMid: candidate.sdpMid!,
           sdpMlineIndex: candidate.sdpMlineIndex!);
@@ -141,11 +144,8 @@ class VideoConferenceController extends GetxController {
 
     RTCSessionDescription offer = await peerConnection!.createOffer();
     await peerConnection!.setLocalDescription(offer);
-    call = new Call(
-        to: to,
-        from: userController.user,
-        sdp: SdpModel(type: offer.type, sdp: offer.sdp));
-    socketService.callSocketUser(call!);
+    call.sdp = SdpModel(type: offer.type, sdp: offer.sdp);
+    socketService.callSocketUser(call);
   }
 
   Future<void> handleReceiveCall(Call call) async {
@@ -197,6 +197,7 @@ class VideoConferenceController extends GetxController {
       to: call.from,
       from: userController.user,
       sdp: SdpModel(type: answer.type, sdp: answer.sdp),
+      isVideoCall: call.isVideoCall,
     );
     socketService.makeAnswer(answerCall);
     update();
@@ -218,6 +219,30 @@ class VideoConferenceController extends GetxController {
     Get.back();
     if (snackbarMessage != null) {
       Get.snackbar("Call Status", snackbarMessage);
+    }
+  }
+
+  void switchCamera() async {
+    if (localStream != null) {
+      if (mediaDevices.length > 1) {
+        MediaStreamTrack value = localStream!.getVideoTracks()[0];
+        await Helper.switchCamera(
+          value,
+          // isFrontCamera
+          //     ? mediaDevices.first.deviceId
+          //     : mediaDevices[1].deviceId,
+        );
+        isFrontCamera = !isFrontCamera;
+        update();
+      }
+    }
+  }
+
+  void muteMicrophone() async {
+    if (localStream != null) {
+      Helper.setMicrophoneMute(!isMuted, localStream!.getAudioTracks()[0]);
+      isMuted = !isMuted;
+      update();
     }
   }
 

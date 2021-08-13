@@ -12,7 +12,7 @@ class ConnectScreen extends GetView<UserController> {
       appBar: AppBar(
         leading: Center(
           child: Text(
-            'Chat App',
+            'Video Call',
             style: TextStyle(fontSize: 25),
             textAlign: TextAlign.start,
           ),
