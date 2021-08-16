@@ -113,17 +113,27 @@ class VideoConferenceController extends GetxController {
     }
   }
 
-  Future<void> callUser(Call call) async {
+  Future createPeerConn(Call call) async {
     peerConnection = await createPeerConnection(configuration);
 
     peerConnection?.onIceCandidate = (RTCIceCandidate candidate) {
       print('Got candidate: ${candidate.toMap()}');
-      CandidateModel candidateModel = CandidateModel(
-          to: call.to,
-          from: call.from,
-          candidate: candidate.candidate!,
-          sdpMid: candidate.sdpMid!,
-          sdpMlineIndex: candidate.sdpMlineIndex!);
+      CandidateModel? candidateModel;
+      if (isOffer) {
+        candidateModel = CandidateModel(
+            to: call.to,
+            from: call.from,
+            candidate: candidate.candidate!,
+            sdpMid: candidate.sdpMid!,
+            sdpMlineIndex: candidate.sdpMlineIndex!);
+      } else {
+        candidateModel = CandidateModel(
+            to: call.from,
+            from: userController.user,
+            candidate: candidate.candidate!,
+            sdpMid: candidate.sdpMid!,
+            sdpMlineIndex: candidate.sdpMlineIndex!);
+      }
       socketService.sendIceCandidate(candidateModel);
     };
 
@@ -141,6 +151,10 @@ class VideoConferenceController extends GetxController {
     });
 
     registerPeerConnectionListeners();
+  }
+
+  Future<void> callUser(Call call) async {
+    await createPeerConn(call);
 
     RTCSessionDescription offer = await peerConnection!.createOffer();
     await peerConnection!.setLocalDescription(offer);
@@ -149,36 +163,7 @@ class VideoConferenceController extends GetxController {
   }
 
   Future<void> handleReceiveCall(Call call) async {
-    peerConnection = await createPeerConnection(configuration);
-
-    peerConnection!.onIceCandidate = (RTCIceCandidate? candidate) {
-      if (candidate == null) {
-        print('onIceCandidate: complete!');
-        return;
-      }
-      print('onIceCandidate: ${candidate.toMap()}');
-      CandidateModel candidateModel = CandidateModel(
-          to: call.from,
-          from: userController.user,
-          candidate: candidate.candidate!,
-          sdpMid: candidate.sdpMid!,
-          sdpMlineIndex: candidate.sdpMlineIndex!);
-      socketService.sendIceCandidate(candidateModel);
-    };
-
-    peerConnection?.onTrack = (RTCTrackEvent event) {
-      print('Got remote track: ${event.streams[0]}');
-      event.streams[0].getTracks().forEach((track) {
-        print('Add a track to the remoteStream: $track');
-        remoteStream?.addTrack(track);
-      });
-    };
-
-    localStream?.getTracks().forEach((track) {
-      peerConnection?.addTrack(track, localStream!);
-    });
-
-    registerPeerConnectionListeners();
+    await createPeerConn(call);
 
     var remoteSdp = RTCSessionDescription(
       call.sdp!.sdp!,
@@ -187,7 +172,7 @@ class VideoConferenceController extends GetxController {
 
     await peerConnection?.setRemoteDescription(remoteSdp);
 
-    var answer = await peerConnection!.createAnswer();
+    RTCSessionDescription answer = await peerConnection!.createAnswer();
     print('Created Answer $answer');
 
     await peerConnection!.setLocalDescription(answer);
